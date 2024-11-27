@@ -18,18 +18,15 @@ class LogRetrievalServer:
     - Secure, configurable log access
     """
     
-    def __init__(self, log_dir: str = '/var/log', 
-                auth_token: Optional[str] = None,
-                max_lines: int = 1000):
+    def __init__(self, auth_token: Optional[str] = None, max_lines: int = 1000):
         """
         Initialize the log retrieval server.
         
         Args:
-            log_dir (str): Directory containing log files
             auth_token (str, optional): Authentication token
             max_lines (int): Maximum number of log lines to return
         """
-        self.log_dir = os.path.abspath(log_dir)
+        self.log_dir = '/var/log'  # Hard-coded to /var/log
         self.auth_token = auth_token
         self.max_lines = max_lines
         
