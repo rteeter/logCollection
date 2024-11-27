@@ -105,14 +105,12 @@ python -m unittest tests/test_log_retrieval_server.py
 Test coverage includes:
 - Basic log file reading and filtering
 - Line limit enforcement
-- Authentication token handling
 - Security checks (directory traversal prevention)
-- Log ordering verification
 - Empty file handling
 - Error cases
 
 ### Manual Testing
-1. Start the server:
+1. Start the server with authentication:
 ```bash
 python src/log_retrieval_server.py -t mysecrettoken
 ```
@@ -132,7 +130,7 @@ curl "http://localhost:8000/logs?filename=system.log&filter=ERROR"
 
 3. Test web interface:
 - Open `http://localhost:8000` in browser
-- Enter authentication token
+- Enter authentication token (if required)
 - Try various log files and filters
 
 ## Limitations

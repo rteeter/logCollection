@@ -80,16 +80,11 @@ class LogRequestHandler(BaseHTTPRequestHandler):
     """
     
     def do_GET(self):
-        """Handle GET requests for log retrieval and web UI"""
+        """Handle GET requests for log retrieval"""
         parsed_path = urlparse(self.path)
         
-        # Serve web UI at root
-        if parsed_path.path == '/':
-            self.serve_ui()
-            return
-            
         # Handle API requests
-        elif parsed_path.path == '/logs':
+        if parsed_path.path == '/logs':
             params = parse_qs(parsed_path.query)
             
             try:
@@ -145,23 +140,6 @@ class LogRequestHandler(BaseHTTPRequestHandler):
                 
         else:
             self.send_error(404, "Not Found")
-
-    def serve_ui(self):
-        """Serve the web UI"""
-        template_path = os.path.join(
-            os.path.dirname(__file__), 
-            'templates', 
-            'index.html'
-        )
-        try:
-            with open(template_path, 'r') as f:
-                html = f.read()
-                self.send_response(200)
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
-                self.wfile.write(html.encode())
-        except Exception as e:
-            self.send_error(500, f"Error serving UI: {str(e)}")
 
 def create_server(
     port: int = 8000, 

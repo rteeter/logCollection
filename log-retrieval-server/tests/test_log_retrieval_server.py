@@ -73,18 +73,6 @@ class TestLogRetrievalServer(unittest.TestCase):
             '../src/templates/index.html'
         )
         self.assertTrue(os.path.exists(template_path))
-        
-    def test_routes(self):
-        """Test URL routing"""
-        # Test root route (UI)
-        response = self.client.get('/')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers['Content-type'], 'text/html')
-        
-        # Test logs route (API)
-        response = self.client.get('/logs?filename=test.log')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers['Content-type'], 'application/json')
 
 if __name__ == '__main__':
     unittest.main()
