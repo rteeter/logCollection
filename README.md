@@ -8,6 +8,7 @@ A minimal, secure, and lightweight log retrieval server for Unix-based systems, 
 - Secure log file access
 - Flexible log retrieval options
 - Authentication support
+- Web UI for easy log access
 
 ## Requirements
 - Python 3.8+
@@ -18,7 +19,7 @@ A minimal, secure, and lightweight log retrieval server for Unix-based systems, 
 ```bash
 # Clone the repository
 git clone git@github.com:rteeter/logCollection.git
-cd logCollection
+cd logCollection/log-retrieval-server
 
 # Ensure executable permissions
 chmod +x src/log_retrieval_server.py
@@ -58,6 +59,24 @@ curl "http://localhost:8000/logs?filename=system.log&filter=Configuration"
 
 # With authentication if enabled
 curl -H "Authorization: Bearer mysecrettoken" "http://localhost:8000/logs?filename=system.log"
+```
+
+## Web Interface
+A basic web interface is available for demonstrating the log retrieval functionality:
+
+1. Access the UI by opening `http://localhost:8000/` in your browser
+2. Enter the authentication token if required
+3. Specify the log file name (e.g., system.log)
+4. Optionally set the number of lines and filter text
+5. Click "Retrieve Logs" to view the results
+
+Example:
+```bash
+# Start the server with authentication
+python src/log_retrieval_server.py -t mysecrettoken
+
+# Then open in browser:
+http://localhost:8000/
 ```
 
 ## Security Considerations
