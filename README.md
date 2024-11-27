@@ -1,12 +1,12 @@
 # Log Retrieval Server
 
 ## Overview
-A minimal, secure, and lightweight log retrieval server for Unix-based systems, providing REST API access to log files from /var/log without external dependencies.
+A minimal, secure, and lightweight log retrieval server for Unix-based systems, providing both REST API and web interface access to log files from /var/log. Built with only Python standard library dependencies, it supports authentication, filtering, and configurable line limits.
 
 ## Features
 - Minimal Python standard library dependencies
 - Secure log file access
-- Flexible log retrieval options
+- Flexible log retrieval options (filtering, line limits)
 - Authentication support
 - Web UI for easy log access
 
@@ -20,9 +20,6 @@ A minimal, secure, and lightweight log retrieval server for Unix-based systems, 
 # Clone the repository
 git clone git@github.com:rteeter/logCollection.git
 cd logCollection/log-retrieval-server
-
-# Ensure executable permissions
-chmod +x src/log_retrieval_server.py
 ```
 
 ## Usage
@@ -48,6 +45,19 @@ Retrieve log entries with flexible filtering
 - `filename`: (Required) Name of the log file
 - `lines`: Number of recent log entries to retrieve (default: 1000)
 - `filter`: Keyword to filter log entries
+
+**Response Format:**
+```json
+{
+    "filename": "system.log",
+    "total_entries": 100,
+    "entries": [
+        "2024-01-01 INFO: Log entry 1",
+        "2023-12-31 ERROR: Log entry 2",
+        ...
+    ]
+}
+```
 
 **Example Requests:**
 ```bash
@@ -83,7 +93,7 @@ http://localhost:8000/
 - Restricts file access to specified log directory
 - Optional token-based authentication
 - Input validation and sanitization
-- Logging of access attempts
+- Directory traversal prevention
 
 ## Testing
 
@@ -92,10 +102,38 @@ http://localhost:8000/
 python -m unittest tests/test_log_retrieval_server.py
 ```
 
+Test coverage includes:
+- Basic log file reading and filtering
+- Line limit enforcement
+- Authentication token handling
+- Security checks (directory traversal prevention)
+- Log ordering verification
+- Empty file handling
+- Error cases
+
 ### Manual Testing
-1. Start the server
-2. Use curl w/ terminal or Postman or RapidAPI to test endpoints
-3. Verify log retrieval functionality
+1. Start the server:
+```bash
+python src/log_retrieval_server.py -t mysecrettoken
+```
+
+2. Test basic functionality:
+```bash
+# Test authentication
+curl -H "Authorization: Bearer mysecrettoken" \
+     "http://localhost:8000/logs?filename=system.log"
+
+# Test line limiting
+curl "http://localhost:8000/logs?filename=system.log&lines=10"
+
+# Test filtering
+curl "http://localhost:8000/logs?filename=system.log&filter=ERROR"
+```
+
+3. Test web interface:
+- Open `http://localhost:8000` in browser
+- Enter authentication token
+- Try various log files and filters
 
 ## Limitations
 - Requires root/sudo for full `/var/log` access
@@ -106,3 +144,4 @@ python -m unittest tests/test_log_retrieval_server.py
 - Add more robust authentication
 - Implement rate limiting
 - Support for compressed log files
+- Add request logging and monitoring
