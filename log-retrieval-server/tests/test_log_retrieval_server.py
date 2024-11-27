@@ -76,11 +76,6 @@ class TestLogRetrievalServer(unittest.TestCase):
         
     def test_routes(self):
         """Test URL routing"""
-        routes = {
-            '/': self.serve_ui,
-            '/logs': self.serve_logs
-        }
-        
         # Test root route (UI)
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)

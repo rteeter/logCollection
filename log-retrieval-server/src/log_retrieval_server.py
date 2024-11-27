@@ -94,8 +94,8 @@ class LogRequestHandler(BaseHTTPRequestHandler):
             
             try:
                 # Authentication check
+                auth_header = self.headers.get('Authorization')
                 if hasattr(self.server, 'auth_token') and self.server.auth_token:
-                    auth_header = self.headers.get('Authorization')
                     if not auth_header or not auth_header.startswith('Bearer '):
                         self.send_error(401, "Authorization header missing or invalid")
                         return
@@ -106,7 +106,7 @@ class LogRequestHandler(BaseHTTPRequestHandler):
 
                 # Extract query parameters
                 filename = params.get('filename', [None])[0]
-                lines = int(params.get('lines', [1000])[0])
+                lines = int(params.get('lines', ['1000'])[0])
                 filter_text = params.get('filter', [None])[0]
                 
                 # Validate parameters
@@ -162,56 +162,6 @@ class LogRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(html.encode())
         except Exception as e:
             self.send_error(500, f"Error serving UI: {str(e)}")
-
-    def serve_logs(self):
-        """Handle existing log retrieval API endpoint"""
-        # Move existing API logic here
-        params = parse_qs(urlparse(self.path).query)
-        
-        try:
-            # Authentication check
-            if hasattr(self.server, 'auth_token') and self.server.auth_token:
-                auth_header = self.headers.get('Authorization')
-                if not auth_header or not auth_header.startswith('Bearer '):
-                    self.send_error(401, "Authorization header missing or invalid")
-                    return
-                token = auth_header.split(' ')[1]
-                if token != self.server.auth_token:
-                    self.send_error(401, "Invalid token")
-                    return
-
-            # Extract query parameters
-            filename = params.get('filename', [None])[0]
-            lines = int(params.get('lines', [1000])[0])
-            filter_text = params.get('filter', [None])[0]
-            
-            # Validate parameters
-            if not filename:
-                self.send_error(400, "Filename is required")
-                return
-            
-            # Retrieve log entries
-            log_entries = self.server.log_retriever.read_log_file(
-                filename, 
-                lines=lines, 
-                filter_text=filter_text
-            )
-            
-            # Prepare response
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            
-            response = {
-                'filename': filename,
-                'total_entries': len(log_entries),
-                'entries': log_entries
-            }
-            
-            self.wfile.write(json.dumps(response).encode())
-        
-        except Exception as e:
-            self.send_error(500, f"Internal Server Error: {str(e)}")
 
 def create_server(
     port: int = 8000, 
