@@ -2,13 +2,11 @@
 import os
 import json
 import re
-import logging
 import sys
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-from typing import List, Optional
+from typing import Optional
 import argparse
-import base64
 
 class LogRetrievalServer:
     """
@@ -20,25 +18,25 @@ class LogRetrievalServer:
     - Secure, configurable log access
     """
     
-    def __init__(self, auth_token: Optional[str] = None, max_lines: int = 1000):
+    def __init__(self, log_dir: str = '/var/log', 
+                auth_token: Optional[str] = None,
+                max_lines: int = 1000):
         """
         Initialize the log retrieval server.
         
         Args:
+            log_dir (str): Directory containing log files
             auth_token (str, optional): Authentication token
             max_lines (int): Maximum number of log lines to return
         """
-        self.log_dir = '/var/log'  # Hard-coded to /var/log
+        self.log_dir = os.path.abspath(log_dir)
         self.auth_token = auth_token
         self.max_lines = max_lines
         
-        # Setup logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
-        self.logger = logging.getLogger(__name__)
-    
+        # Validate log directory
+        if not os.path.isdir(self.log_dir):
+            raise ValueError(f"Invalid log directory: {self.log_dir}")
+        
     def read_log_file(self, filename, lines=None, filter_text=None):
         """
         Read log file with advanced filtering and pagination.
@@ -76,11 +74,7 @@ class LogRetrievalServer:
                 lines = lines or self.max_lines
                 return all_lines[:lines]
 
-        except PermissionError:
-            self.logger.error(f"Permission denied reading {filename}")
-            return []
-        except Exception as e:
-            self.logger.error(f"Error reading log file: {e}")
+        except (PermissionError, Exception):
             return []
 
 class LogRequestHandler(BaseHTTPRequestHandler):
