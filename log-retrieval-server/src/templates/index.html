@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Log Retrieval UI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: .5rem;
+            font-weight: 500;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: .5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            padding: .5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        pre {
+            background: #f8f9fa;
+            padding: 1rem;
+            overflow-x: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+
+        .error {
+            color: #dc3545;
+            padding: 1rem;
+            background: #f8d7da;
+            border-radius: 4px;
+            margin: 1rem 0;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Log Retrieval UI</h1>
+
+    <div class="form-group">
+        <label for="token">Authentication Token:</label>
+        <input type="text" id="token" placeholder="Enter token if required">
+    </div>
+
+    <div class="form-group">
+        <label for="filename">Log File:</label>
+        <input type="text" id="filename" placeholder="e.g., system.log" required>
+    </div>
+
+    <div class="form-group">
+        <label for="lines">Number of Lines:</label>
+        <input type="number" id="lines" value="100" min="1">
+    </div>
+
+    <div class="form-group">
+        <label for="filter">Filter Text:</label>
+        <input type="text" id="filter" placeholder="Optional filter text">
+    </div>
+
+    <button onclick="fetchLogs()">Retrieve Logs</button>
+
+    <div id="error" class="error"></div>
+
+    <div id="results">
+        <h2>Results:</h2>
+        <pre id="logOutput"></pre>
+    </div>
+
+    <script>
+        async function fetchLogs() {
+            const filename = document.getElementById('filename').value;
+            const lines = document.getElementById('lines').value;
+            const filter = document.getElementById('filter').value;
+            const token = document.getElementById('token').value;
+            const errorDiv = document.getElementById('error');
+            const output = document.getElementById('logOutput');
+
+            // Clear previous results
+            errorDiv.style.display = 'none';
+            output.textContent = 'Loading...';
+
+            const url = new URL('/logs', window.location.href);
+            url.searchParams.append('filename', filename);
+            if (lines) url.searchParams.append('lines', lines);
+            if (filter) url.searchParams.append('filter', filter);
+
+            try {
+                const headers = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch(url, { headers });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to retrieve logs');
+                }
+
+                if (data.entries && data.entries.length > 0) {
+                    output.textContent = data.entries.join('');
+                } else {
+                    output.textContent = 'No logs found';
+                }
+            } catch (error) {
+                errorDiv.textContent = `Error: ${error.message}`;
+                errorDiv.style.display = 'block';
+                output.textContent = '';
+            }
+        }
+    </script>
+</body>
+
+</html>

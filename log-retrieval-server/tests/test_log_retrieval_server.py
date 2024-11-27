@@ -62,5 +62,34 @@ class TestLogRetrievalServer(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             self.log_server.read_log_file('nonexistent.log')
 
+    def test_serve_ui(self):
+        """Test serving the web UI"""
+        with self.assertRaises(Exception) as context:
+            self.log_server.serve_ui()
+        
+        # Ensure the UI template exists
+        template_path = os.path.join(
+            os.path.dirname(__file__),
+            '../src/templates/index.html'
+        )
+        self.assertTrue(os.path.exists(template_path))
+        
+    def test_routes(self):
+        """Test URL routing"""
+        routes = {
+            '/': self.serve_ui,
+            '/logs': self.serve_logs
+        }
+        
+        # Test root route (UI)
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers['Content-type'], 'text/html')
+        
+        # Test logs route (API)
+        response = self.client.get('/logs?filename=test.log')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers['Content-type'], 'application/json')
+
 if __name__ == '__main__':
     unittest.main()
