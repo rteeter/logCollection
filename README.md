@@ -11,15 +11,32 @@ A minimal, secure, and lightweight log retrieval server for Unix-based systems, 
 - Web UI for easy log access
 
 ## Requirements
-- Python 3.8+
+- Python 3.11+
 - Unix-like operating system
 - Read access to /var/log directory (may require sudo)
 
-## Installation
+## Development Setup
+
+1. Clone the repository:
 ```bash
-# Clone the repository
 git clone git@github.com:rteeter/logCollection.git
 cd logCollection/log-retrieval-server
+```
+
+2. Create virtual environment with Python 3.11:
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+```
+
+3. Verify Python version:
+```bash
+python --version  # Should show Python 3.11.x
+```
+
+4. Install test requirements:
+```bash
+pip install -r requirements-test.txt
 ```
 
 ## Usage
@@ -97,7 +114,8 @@ http://localhost:8000/
 
 ## Testing
 
-### Unit Tests
+### Running Tests
+Make sure you're in your virtual environment, then:
 ```bash
 python -m unittest tests/test_log_retrieval_server.py
 ```
