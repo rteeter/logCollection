@@ -36,7 +36,8 @@ class LogRetrievalServer:
         
     def read_log_file(self, filename, lines=None, filter_text=None):
         """
-        Read log file with advanced filtering and pagination.
+        Read log file with efficient filtering and pagination.
+        Reads file in chunks from the end to handle large files.
 
         Args:
             filename (str): Log file name
@@ -55,30 +56,66 @@ class LogRetrievalServer:
         if not os.path.exists(full_path):
             raise FileNotFoundError(f"Log file not found: {filename}")
 
+        lines_wanted = lines or self.max_lines
+        matching_lines = []
+        
         try:
-            with open(full_path, 'r') as f:
-                # Read lines in reverse, most recent first
-                all_lines = f.readlines()[::-1]
+            with open(full_path, 'rb') as f:
+                # Start from end of file
+                f.seek(0, os.SEEK_END)
+                pos = f.tell()
+                
+                # Read chunks from end of file
+                chunk_size = 8192  # 8KB chunks
+                leftovers = ''
+                
+                while pos > 0 and len(matching_lines) < lines_wanted:
+                    # Move back by chunk size
+                    chunk_end = pos
+                    pos = max(pos - chunk_size, 0)
+                    f.seek(pos)
+                    
+                    # Read chunk and decode
+                    chunk = f.read(chunk_end - pos)
+                    text = chunk.decode('utf-8', errors='ignore')
+                    
+                    # Split into lines and handle partial lines
+                    chunk_lines = text.splitlines()
+                    
+                    if leftovers:
+                        chunk_lines[-1] = chunk_lines[-1] + leftovers
+                    if pos > 0:
+                        leftovers = chunk_lines[0]
+                        chunk_lines = chunk_lines[1:]
+                    
+                    # Process lines in reverse
+                    for line in reversed(chunk_lines):
+                        if filter_text and filter_text not in line:
+                            continue
+                        matching_lines.append(line)
+                        if len(matching_lines) >= lines_wanted:
+                            break
 
-                # Apply filtering
-                if filter_text:
-                    all_lines = [
-                        line for line in all_lines
-                        if re.search(filter_text, line, re.IGNORECASE)
-                    ]
+            return matching_lines
 
-                # Limit lines
-                lines = lines or self.max_lines
-                return all_lines[:lines]
-
-        except (PermissionError, Exception):
-            return []
+        except Exception as e:
+            print(f"Error reading log file: {e}")
+            raise
 
 class LogRequestHandler(BaseHTTPRequestHandler):
     """
     Custom HTTP Request Handler for Log Retrieval
     """
     
+    def send_error_json(self, code: int, message: str):
+        """Send an error response in JSON format"""
+        self.send_response(code)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({
+            "error": message
+        }).encode())
+
     def do_GET(self):
         """Handle GET requests for log retrieval and web UI"""
         parsed_path = urlparse(self.path)
@@ -97,54 +134,56 @@ class LogRequestHandler(BaseHTTPRequestHandler):
                 auth_header = self.headers.get('Authorization')
                 if hasattr(self.server, 'auth_token') and self.server.auth_token:
                     if not auth_header or not auth_header.startswith('Bearer '):
-                        self.send_error(401, "Authorization header missing or invalid")
+                        self.send_error_json(401, "Authorization header missing or invalid")
                         return
                     token = auth_header.split(' ')[1]
                     if token != self.server.auth_token:
-                        self.send_error(401, "Invalid token")
+                        self.send_error_json(401, "Invalid token")
                         return
 
                 # Extract query parameters
                 filename = params.get('filename', [None])[0]
-                lines = int(params.get('lines', ['1000'])[0])
-                filter_text = params.get('filter', [None])[0]
-                
-                # Validate parameters
                 if not filename:
-                    self.send_error(400, "Filename is required")
+                    self.send_error_json(400, "Filename is required")
                     return
                 
-                # Retrieve log entries
-                log_entries = self.server.log_retriever.read_log_file(
-                    filename, 
-                    lines=lines, 
-                    filter_text=filter_text
-                )
+                try:
+                    lines = int(params.get('lines', ['1000'])[0])
+                except ValueError:
+                    self.send_error_json(400, "Invalid lines parameter")
+                    return
+                    
+                filter_text = params.get('filter', [None])[0]
                 
-                # Prepare response
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                
-                response = {
-                    'filename': filename,
-                    'total_entries': len(log_entries),
-                    'entries': log_entries
-                }
-                
-                self.wfile.write(json.dumps(response).encode())
-                
+                try:
+                    log_entries = self.server.log_retriever.read_log_file(
+                        filename, 
+                        lines=lines, 
+                        filter_text=filter_text
+                    )
+                    
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    
+                    self.wfile.write(json.dumps({
+                        'filename': filename,
+                        'total_entries': len(log_entries),
+                        'entries': log_entries
+                    }).encode())
+                    
+                except FileNotFoundError:
+                    self.send_error_json(404, f"Log file not found: {filename}")
+                except PermissionError:
+                    self.send_error_json(403, "Access to file path denied")
+                except Exception as e:
+                    self.send_error_json(500, f"Internal server error: {str(e)}")
+                    
             except Exception as e:
-                # Send error as JSON
-                self.send_response(500)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({
-                    "error": str(e)
-                }).encode())
+                self.send_error_json(500, f"Internal server error: {str(e)}")
                 
         else:
-            self.send_error(404, "Not Found")
+            self.send_error_json(404, "Not Found")
 
     def serve_ui(self):
         """Serve the web UI"""
@@ -161,7 +200,7 @@ class LogRequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(html.encode())
         except Exception as e:
-            self.send_error(500, f"Error serving UI: {str(e)}")
+            self.send_error_json(500, f"Error serving UI: {str(e)}")
 
 def create_server(
     port: int = 8000, 
