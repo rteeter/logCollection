@@ -10,6 +10,9 @@ A minimal, secure, and lightweight log retrieval server for Unix-based systems, 
 - Authentication support
 - Web UI for easy log access
 
+## Documentation
+- [Technical Implementation Guide](https://furtive-dart-4e3.notion.site/Technical-Implementation-15b4d0fe275280478618ce5221ad554a?pvs=4)
+
 ## Requirements
 - Python 3.11+
 - Unix-like operating system
